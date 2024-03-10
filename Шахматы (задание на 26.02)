@@ -15,9 +15,9 @@ class Bishop():
         if abs(start[0] - to[0]) == abs(start[1] - to[1]) and 0 <= start[1] <= 7 and 0 <= to[1] <= 7 and abs(
                 start[0] - to[0]) != 0:
             a = start[0]
-            # а - коордианата фигуры по горизонтальной оси в ее начальном положении
+            # а - коордианата фигуры по вертикальной оси в ее начальном положении
             b = start[1]
-            # b - коордианата фигуры по вертикальной оси в ее начальном положении
+            # b - коордианата фигуры по горизонтальной оси в ее начальном положении
             while a != to[0]:
                 # Проверка, нет ли чего-то между начальной точки слона и конечной
                 a -= (abs(start[0] - to[0]) // (start[0] - to[0]))
@@ -37,6 +37,9 @@ class Pawn():
         self.color = color
         self.name = "P"
         self.first_move = True
+        self.move_count = 0 # считает количество ходов каждой фигуры
+        self.two_move = False # проверка на то, был ли у пешки двойной ход
+        self.take_on_path = False # было ли взятие на проходе
         # Проверка, не первый ли это ход
 
     def is_valid_move(self, board, start, to):
@@ -47,32 +50,118 @@ class Pawn():
                 1] <= 7:
                 # Это первый ход и пешка ходит на 2 клетки
                 self.first_move = False
+                self.move_count += 1
+                self.two_move = True
                 return True
             elif start[1] == to[1] and to[0] - start[0] == 1 and board.board[to[0]][to[1]] == '.' and 0 <= start[
                 1] <= 7 and 0 <= to[1] <= 7:
                 # Пешка ходит на 1 клетку
                 self.first_move = False
+                self.move_count += 1
+                self.two_move = False
                 return True
             elif abs(start[1] - to[1]) == 1 and to[0] - start[0] == 1 and board.board[to[0]][to[1]] != '.' and \
                     board.board[to[0]][to[1]].color != self.color and 0 <= start[1] <= 7 and 0 <= to[1] <= 7:
                 # Если хочет съесть фигуру
                 self.first_move = False
+                self.move_count += 1
+                self.two_move = False
                 return True
+            elif abs(start[1] - to[1]) == 1 and start[0] - to[0] == 1 and board.board[start[0]][to[1]] != '.' and \
+                    board.board[start[0]][to[1]].name == 'P' and board.board[start[0]][to[1]].move_count == 1 and \
+                    board.board[start[0]][to[1]].two_move and 0 <= start[1] <= 7 and 0 <= to[1] <= 7 and \
+                    board.board[start[0]][to[1]].color != self.color:
+                # Если было совершено взятие на проходе
+                self.move_count += 1
+                self.first_move = False
+                self.take_on_path = True
+                self.two_move = False
+                return True
+
         else:
             # Для черной пешки (то же самое, но координаты наоборот)
             if self.first_move and start[1] == to[1] and start[0] - to[0] == 2 and board.board[start[0] - 1][
                 start[1]] == '.' and board.board[start[0] - 2][start[1]] == '.' and 0 <= start[1] <= 7 and 0 <= to[
                 1] <= 7:
                 self.first_move = False
+                self.move_count += 1
+                self.two_move = True
                 return True
             elif start[1] == to[1] and start[0] - to[0] == 1 and board.board[to[0]][to[1]] == '.' and 0 <= start[
                 1] <= 7 and 0 <= to[1] <= 7:
                 self.first_move = False
+                self.move_count += 1
+                self.two_move = False
                 return True
             elif abs(start[1] - to[1]) == 1 and start[0] - to[0] == 1 and board.board[to[0]][to[1]] != '.' and \
                     board.board[to[0]][to[1]].color != self.color and 0 <= start[1] <= 7 and 0 <= to[1] <= 7:
                 self.first_move = False
+                self.move_count += 1
+                self.two_move = False
                 return True
+            elif abs(start[1] - to[1]) == 1 and start[0] - to[0] == 1 and board.board[start[0]][to[1]] != '.' and \
+                    board.board[start[0]][to[1]].name == 'P' and board.board[start[0]][to[1]].move_count == 1 and \
+                    board.board[start[0]][to[1]].two_move and 0 <= start[1] <= 7 and 0 <= to[1] <= 7 and \
+                    board.board[start[0]][to[1]].color != self.color:
+                self.first_move = False
+                self.move_count += 1
+                self.take_on_path = True
+                self.two_move = False
+                return True
+
+
+class Wizard():
+    # Wizard - волшебник
+    def __init__(self, color):
+        self.color = color
+        self.name = "W"
+
+    def is_valid_move(self, board, start, to):
+        # Так же, как у короля, проверяем возможность ходов вокруг себя
+        if abs(start[0] - to[0]) <= 1 and abs(start[1] - to[1]) <= 1 and not (
+                start[0] == to[0] and start[1] == to[1]) and 0 <= start[1] <= 7 and 0 <= to[1] <= 7:
+            if board.board[to[0]][to[1]] != '.' and board.board[to[0]][to[1]].color == self.color:
+                return False
+            return True
+        # Тут реализуется проверка на возможность "телепортации"
+        # Телепортация: перемещение с клетки (x, y) на (y, x)
+        if start[0] == to[1] and start[1] == to[0] and 0 <= start[1] <= 7 and 0 <= to[1] <= 7:
+            if board.board[to[0]][to[1]] != '.' and board.board[to[0]][to[1]].color == self.color:
+                # Проверка на то, не своя ли фигура на конечной клетке
+                return False
+            return True
+        return False
+
+
+class Samurai():
+    # Samurai - самурай
+    def __init__(self, color):
+        self.color = color
+        self.name = 'S'
+
+    def is_valid_move(self, board, start, to):
+        if abs(start[0] - to[0]) == 2 or abs(start[1] - to[1]) == 2 and 0 <= start[1] <= 7 and 0 <= to[1] <= 7:
+            if board.board[to[0]][to[1]] != '.' and board.board[to[0]][to[1]].color == self.color:
+                # Проверка на то, не стоит ли на конечной координате фигура того же цвета
+                return False
+            return True
+        return False  # Если так нельзя сходить
+
+
+class Dragon():
+    # Dragon - дракошка
+    def __init__(self, color):
+        self.color = color
+        self.name = 'D'
+
+    def is_valid_move(self, board, start, to):
+        # 1 варианта хода:
+        if abs(start[0] - to[0]) + abs(start[1] - to[1]) == 2 and 0 <= start[1] <= 7 and 0 <= to[1] <= 7:
+            if board.board[to[0]][to[1]] != '.' and board.board[to[0]][to[1]].color == self.color:
+                # Проверка на то, не стоит ли на конечной координате фигура того же цвета
+                return False
+            return True
+        return False  # Если так нельзя сходить
 
 
 class Knight():
@@ -111,8 +200,8 @@ class King():
                 start[0] == to[0] and start[1] == to[1]) and 0 <= start[1] <= 7 and 0 <= to[1] <= 7:
             if board.board[to[0]][to[1]] != '.' and board.board[to[0]][to[1]].color == self.color:
                 return False
+            self.first_move = False
             return True
-        self.first_move = False
         return False
 
     def castling(self):
@@ -164,6 +253,66 @@ class Queen():
         return False  # Если ход невозможен
 
 
+class Checker():
+    # Checker - шашка
+    def __init__(self, color):
+        self.color = color
+        self.name = "C"
+
+    def is_valid_move(self, board, start, to):
+        if self.color == 0:
+            # Если это белая шашка
+            if start[0] - to[0] == -1 and abs(start[1] - to[1]) == 1 and board.board[to[0]][to[1]] == '.' and 0 <= start[1] <= 7 and 0 <= to[1] <= 7:
+                return [1, 0] # Первый указывает возможен ли ход, второй - съел ли фигуру
+            if start[0] - to[0] == -2 and abs(start[1] - to[1]) == 2 and board.board[start[0] + 1][start[1] - (start[1] - to[1])//2] != '.' and board.board[start[0] + 1][start[1] - (start[1] - to[1])//2].color == 1  and 0 <= start[1] <= 7 and 0 <= to[1] <= 7:
+                # board.board[start[0] + 1][start[1] - (start[1] - to[1])//2] - определает фигуру, которую мы можем съесть
+                return [1, 1]
+            return [0, 0]
+        if self.color == 1:
+            # Если это черная шашка
+            if start[0] - to[0] == 1 and abs(start[1] - to[1]) == 1 and board.board[to[0]][to[1]] == '.' and 0 <= start[1] <= 7 and 0 <= to[1] <= 7:
+                return [1, 0]
+            if start[0] - to[0] == 2 and abs(start[1] - to[1]) == 2 and board.board[start[0] - 1][start[1] - (start[1] - to[1])//2] != '.' and board.board[start[0] - 1][start[1] - (start[1] - to[1])//2].color == 0 and 0 <= start[1] <= 7 and 0 <= to[1] <= 7:
+                return [1, 1]
+            return [0, 0]
+
+
+class Checker_Queen():
+    # Checker - шашка
+    def __init__(self, color):
+        self.color = color
+        self.name = "Q"
+
+    def is_valid_move(self, board, start, to):
+        if abs(start[0] - to[0]) == abs(start[1] - to[1]) and 0 <= start[1] <= 7 and 0 <= to[1] <= 7 and abs(
+                start[0] - to[0]) != 0:
+            a = start[0]
+            # а - коордианата фигуры по вертикальной оси в ее начальном положении
+            b = start[1]
+            # b - коордианата фигуры по горизонтальной оси в ее начальном положении
+            c = 0
+            # с - количество фигур между начальной и конечной координатой
+            while a != to[0]:
+                a -= (abs(start[0] - to[0]) // (start[0] - to[0]))
+                b -= (abs(start[1] - to[1]) // (start[1] - to[1]))
+                if board.board[a][b] != '.' and board.board[a][b].color != self.color:
+                    c += 1
+                elif board.board[a][b] != '.' and board.board[a][b].color == self.color:
+                    # На пути королевы фигура ее же цвета
+                    return [0, 0]
+            if board.board[to[0]][to[1]] != '.':
+                # Если на конечной координате есть фигура, туда нельзя сходить
+                return [0, 0]
+            if c == 0:
+                # Никого не съели, так как некого
+                return [1, 0]
+            elif c == 1:
+                # Кого-то съели
+                return [1, 1]
+
+        return [0, 0]
+
+
 class Rook():
     # Rook - башенка
     def __init__(self, color):
@@ -205,7 +354,7 @@ class Rook():
 
 
 class Board:
-    def __init__(self):
+    def __init__(self, game = 0):
         self.board = [['.', '.', '.', '.', '.', '.', '.', '.'],
                       ['.', '.', '.', '.', '.', '.', '.', '.'],
                       ['.', '.', '.', '.', '.', '.', '.', '.'],
@@ -216,38 +365,58 @@ class Board:
                       ['.', '.', '.', '.', '.', '.', '.', '.']]
         # Вводим класс доски. Создаем доску как вложенный список
         self.color = 0
-        # color 0 - белые фигуры, 1 - черные
-        self.board[7][0] = Rook(1)
-        # Rook - ладья
-        self.board[7][1] = Knight(1)
-        # Knight - конь
-        self.board[7][2] = Bishop(1)
-        # Bishop - слон
-        self.board[7][3] = Queen(1)
-        # Queen - королева
-        self.board[7][4] = King(1)
-        # King - король
-        self.board[7][5] = Bishop(1)
-        self.board[7][6] = Knight(1)
-        self.board[7][7] = Rook(1)
-        for i in range(8):
-            self.board[6][i] = Pawn(1)
-            # Pawn - пешка
-        self.board[0][0] = Rook(0)
-        self.board[0][1] = Knight(0)
-        self.board[0][2] = Bishop(0)
-        self.board[0][3] = Queen(0)
-        self.board[0][4] = King(0)
-        self.board[0][5] = Bishop(0)
-        self.board[0][6] = Knight(0)
-        self.board[0][7] = Rook(0)
-        for i in range(8):
-            self.board[1][i] = Pawn(0)
-
+        if game == 0: # для шахмат
+            # color 0 - белые фигуры, 1 - черные
+            self.board[7][0] = Rook(1)
+            # Rook - ладья
+            self.board[7][1] = Knight(1)
+            # Knight - конь
+            self.board[7][2] = Bishop(1)
+            # Bishop - слон
+            self.board[7][3] = Queen(1)
+            # Queen - королева
+            self.board[7][4] = King(1)
+            # King - король
+            self.board[7][5] = Bishop(1)
+            self.board[7][6] = Knight(1)
+            self.board[7][7] = Rook(1)
+            for i in range(8):
+                self.board[6][i] = Pawn(1)
+                # Pawn - пешка
+            self.board[0][0] = Rook(0)
+            self.board[0][1] = Knight(0)
+            self.board[0][2] = Bishop(0)
+            self.board[0][3] = Queen(0)
+            self.board[0][4] = King(0)
+            self.board[0][5] = Bishop(0)
+            self.board[0][6] = Knight(0)
+            self.board[0][7] = Rook(0)
+            for i in range(8):
+                self.board[1][i] = Pawn(0)
+        else:
+            # Для шашек:
+            # Расставляем пешки по доске
+            for i in range(0, 8, 2):
+                self.board[0][i] = Checker(0)
+                self.board[2][i] = Checker(0)
+                self.board[6][i] = Checker(1)
+            for i in range(1, 8, 2):
+                self.board[1][i] = Checker(0)
+                self.board[5][i] = Checker(1)
+                self.board[7][i] = Checker(1)
+        self.step = 1 # Счетчик ходов
+        self.moves = [] # Сюда запоминаем все прошлые истории досок
+        self.additional_move = False # Будет ли дополнительный ход (если фигура стала королевой или кого-то еще можно съесть)
+        self.previous_piece = [] # Координаты фигуры, которой мы ходили в прошлой раз (для self.additional_move, чтобы ходить
+        # в дополнительнои ходу только той фигурой, которой мы ходили в прошлом ходу)
+        self.eaten = False # True \ False, определяющяя, можно ли кого-то съесть сейчас
+    def move_record(self):
+        # Для записи первой записи доски
+        if self.step == 1:
+            self.moves = [Board()]
     def current_player_color(self):
         return self.color
         # Возвращаем цвет текущего игрока
-
     def print_board(self):
         # Выводит доску
         print('    A B C D E F G H')
@@ -274,6 +443,7 @@ class Board:
 
     def move_piece(self, board, start, to):
         # move_piece проверяет, возможен ли ход, и совершает его
+        board.move_record() # Делаем начальную доску
         if self.board[start[0]][start[1]] != '.':
             # Есть ли в начальных координатах фигура
             if self.color == self.board[start[0]][start[1]].color:
@@ -285,6 +455,11 @@ class Board:
                         start[1]].first_move == True:
                         flag_first_move = True
                     # Проверка на возможность хода
+                    a = None # Сюда будет записываться фигура, которую мы съели при взятии на проходе
+                    if self.board[start[0]][start[1]].name == 'P' and self.board[start[0]][start[1]].take_on_path:
+                        a = self.board[start[0]][to[1]]
+                        self.board[start[0]][to[1]] = '.' # Заменяем съеденную фигуру точкой
+                        self.board[start[0]][start[1]].take_on_path = False
                     self.board[to[0]][to[1]] = self.board[start[0]][start[1]]
                     # Создаем фигуру в новых координатах
                     self.board[start[0]][start[1]] = '.'
@@ -294,6 +469,8 @@ class Board:
                         # Проверяем, находится ли король под шахом
                         self.board[start[0]][start[1]] = self.board[to[0]][to[1]]
                         self.board[to[0]][to[1]] = '.'
+                        if self.board[start[0]][start[1]].name == 'P' and a:
+                            self.board[start[0]][to[1]] = a # Если было взятие на проходе, то запоминаем ту пешку, которую съели, чтобы если что вернуть ее
                         # Если король под шахом, то мы переводим фигуру обратно, так как этот ход невозможен
                         if self.board[start[0]][start[1]].name in ['P', 'R', 'K'] and flag_first_move == True:
                             self.board[start[0]][start[1]].first_move = True
@@ -303,16 +480,33 @@ class Board:
                         # Меняем цвет текущего игрока
                     else:
                         self.color = 0
+                    board_copy = Board()
+                    board_copy.copy(board)
+                    # Делаем копию доски
+                    self.moves.append(board_copy)
+                    # Добавляем эту копию в список с историей ходов
+                    self.step += 1
                     return True
-                    # Если король не под шахом, ход совершается 
+                    # Если король не под шахом, ход совершается
             return False
             # Если двигают фигуру не своего цвета
         else:
             return False
             # Если на начальной коордианте нет фигуры
 
+    def rollback(self, board, num_moves = 1):
+        # num_moves - то, на сколько мы хотим откатить ходов назад
+        # rollback меняет доску на ту, до которой мы откатили ходы
+        if num_moves > len(self.moves) - 1:
+            print("Нельзя откатить на больше ходов чем есть")
+            return
+        self.step -= num_moves
+        for i in range(num_moves):
+            self.moves.pop(-1)
+        board.copy(self.moves[-1])
+
     def change_piece(self, piece, row, col):
-        # change_piece меняет пешку, дошедшую до противоположного конца доски на выбранную игроком фигуру. 
+        # change_piece меняет пешку, дошедшую до противоположного конца доски на выбранную игроком фигуру.
         # В change_piece(self, piece, row, col) piece - фигура, на которую игрок хочет сменить пешку
         if row == 0:
             if piece == 'Q':
@@ -323,6 +517,12 @@ class Board:
                 self.board[row][col] = Rook(1)
             if piece == 'B':
                 self.board[row][col] = Bishop(1)
+            if piece == 'S':
+                self.board[row][col] = Samurai(1)
+            if piece == 'W':
+                self.board[row][col] = Wizard(1)
+            if piece == 'D':
+                self.board[row][col] = Dragon(1)
         if row == 7:
             if piece == 'Q':
                 self.board[row][col] = Queen(0)
@@ -332,6 +532,12 @@ class Board:
                 self.board[row][col] = Rook(0)
             if piece == 'B':
                 self.board[row][col] = Bishop(0)
+            if piece == 'S':
+                self.board[row][col] = Samurai(0)
+            if piece == 'W':
+                self.board[row][col] = Wizard(0)
+            if piece == 'D':
+                self.board[row][col] = Dragon(0)
 
     def castling_s(self, board):
         # castling_s - короткая рокировка (вправо)
@@ -349,7 +555,7 @@ class Board:
                     self.board[0][5] = '.'
                     self.board[0][4] = King(0)
                     self.board[0][6] = '.'
-                    self.board[0][7] = Rook(1)
+                    self.board[0][7] = Rook(0)
                     return False
                 self.board[0][5] = Rook(0)
                 self.board[0][6] = King(0)
@@ -360,7 +566,7 @@ class Board:
                     self.board[0][5] = '.'
                     self.board[0][4] = King(0)
                     self.board[0][6] = '.'
-                    self.board[0][7] = Rook(1)
+                    self.board[0][7] = Rook(0)
                     return False
                     # Если будет, переставляем фигуры обратно
                 self.color = 1
@@ -368,26 +574,42 @@ class Board:
                 self.board[0][4].castling()
                 self.board[0][7].castling()
                 # Делаем ход короля и ладьи уже не первыми
+                board_copy = Board()
+                board_copy.copy(board)
+                self.moves.append(board_copy)
+                self.step += 1
                 return True
             else:
                 return False
         if self.color == 1:
             # Для черного короля. Код аналогичен рокировке для белого
-            if not (board.is_under_check_b(board)) and self.board[7][4] != '.' and self.board[7][4].name == 'K' and \
+            if not (board.is_under_check_w(board)) and self.board[7][4] != '.' and self.board[7][4].name == 'K' and \
                     self.board[7][4].first_move and self.board[7][7] != '.' and self.board[7][7].name == 'R' and \
                     self.board[7][7].first_move and self.board[7][6] == '.' and self.board[7][5] == '.':
                 self.board[7][4] = '.'
-                self.board[7][5] = King(1)
-                if board.is_under_check_b(board):
+                self.board[7][5] = King(0)
+                if board.is_under_check_w(board):
+                    self.board[7][5] = '.'
+                    self.board[7][4] = King(0)
+                    self.board[7][6] = '.'
+                    self.board[7][7] = Rook(0)
                     return False
-                self.board[7][5] = Rook(1)
-                self.board[7][6] = King(1)
+                self.board[7][5] = Rook(0)
+                self.board[7][6] = King(0)
                 self.board[7][7] = '.'
-                if board.is_under_check_b(board):
+                if board.is_under_check_w(board):
+                    self.board[7][5] = '.'
+                    self.board[7][4] = King(0)
+                    self.board[7][6] = '.'
+                    self.board[7][7] = Rook(0)
                     return False
-                self.color = 0
+                self.color = 1
                 self.board[7][4].castling()
                 self.board[7][7].castling()
+                board_copy = Board()
+                board_copy.copy(board)
+                self.moves.append(board_copy)
+                self.step += 1
                 return True
             else:
                 return False
@@ -413,11 +635,15 @@ class Board:
                     self.board[0][3] = '.'
                     self.board[0][4] = King(0)
                     self.board[0][2] = '.'
-                    self.board[0][0] = Rook(1)
+                    self.board[0][0] = Rook(0)
                     return False
                 self.color = 1
                 self.board[0][4].castling()
                 self.board[0][0].castling()
+                board_copy = Board()
+                board_copy.copy(board)
+                self.moves.append(board_copy)
+                self.step += 1
                 return True
             else:
                 return False
@@ -430,7 +656,7 @@ class Board:
                 self.board[7][3] = King(1)
                 if board.is_under_check_b(board):
                     self.board[7][3] = '.'
-                    self.board[7][4] = King(0)
+                    self.board[7][4] = King(1)
                     self.board[7][2] = '.'
                     self.board[7][0] = Rook(1)
                     return False
@@ -439,17 +665,20 @@ class Board:
                 self.board[7][0] = '.'
                 if board.is_under_check_b(board):
                     self.board[7][3] = '.'
-                    self.board[7][4] = King(0)
+                    self.board[7][4] = King(1)
                     self.board[7][2] = '.'
                     self.board[7][0] = Rook(1)
                     return False
                 self.color = 0
                 self.board[7][4].castling()
                 self.board[7][0].castling()
+                board_copy = Board()
+                board_copy.copy(board)
+                self.moves.append(board_copy)
+                self.step += 1
                 return True
             else:
                 return False
-
     def is_under_check_w(self, board):
         # under - под, check - шах, white - сокращение от white (белый),
         # Проверяет, находится ли белый король под шахом
@@ -530,7 +759,7 @@ class Board:
                     return True
         king_moves = [(0, 1), (1, 0), (1, 1), (-1, 0), (1, -1), (-1, -1), (0, -1), (-1, 1)]
         # king_moves - варианты расположения черного короля, в которых он может съесть белого короля
-        # Проверяем, находится ли король под ударом коня:
+        # Проверяем, находится ли король под ударом короля:
         for move in king_moves:
             # Перебираем и проверяем, есть в клетках king_moves короли
             x = king_position[0] + move[0]
@@ -539,8 +768,45 @@ class Board:
                 if board.board[x][y].name == 'K' and board.board[x][y].color == 1:
                     # Проверяем, если на коордианатах x, y король
                     return True
-        return False
+        samurai_moves = [(0, 2), (2, 0), (2, 2), (-2, 0), (2, -2), (-2, -2), (0, -2), (-2, 2)]
+        # samurai_moves - варианты расположения черного самурая, в которых он может съесть белого короля
+        # Проверяем, находится ли король под ударом самурая:
+        for move in samurai_moves:
+            # Перебираем и проверяем, есть в клетках king_moves самураи
+            x = king_position[0] + move[0]
+            y = king_position[1] + move[1]
+            if 0 <= x < 8 and 0 <= y < 8 and board.board[x][y] != '.':
+                if board.board[x][y].name == 'S' and board.board[x][y].color == 1:
+                    # Проверяем, если на коордианатах x, y самурай
+                    return True
+        wizard_moves = [(0, 1), (1, 0), (1, 1), (-1, 0), (1, -1), (-1, -1), (0, -1), (-1, 1)]
+        # wizard_moves - варианты расположения черного волшебника, в которых он может съесть белого короля
+        # Проверяем, находится ли король под ударом волшебника:
+        for move in wizard_moves:
+            # Перебираем и проверяем, есть в клетках king_moves волшебники
+            x = king_position[0] + move[0]
+            y = king_position[1] + move[1]
+            if 0 <= x < 8 and 0 <= y < 8 and board.board[x][y] != '.':
+                if board.board[x][y].name == 'W' and board.board[x][y].color == 1:
+                    # Проверяем, если на коордианатах x, y волшебник
+                    return True
+        if board.board[king_position[1]][king_position[0]] != '.':
+            if board.board[king_position[1]][king_position[0]].name == 'W' and board.board[king_position[1]][king_position[0]].color == 1:
+                # Проверяем, если на коордианатах king_position[1], king_position[0] волшебник
+                return True
 
+        dragon_moves = [(0, 2), (2, 0), (1, 1), (-2, 0), (1, -1), (-1, -1), (0, -2), (-1, 1)]
+        # dragon_moves - варианты расположения черного дракона, в которых он может съесть короля
+        # Проверяем, находится ли король под ударом дракона:
+        for move in dragon_moves:
+            # Перебираем и проверяем, есть в клетках king_moves драконы
+            x = king_position[0] + move[0]
+            y = king_position[1] + move[1]
+            if 0 <= x < 8 and 0 <= y < 8 and board.board[x][y] != '.':
+                if board.board[x][y].name == 'D' and board.board[x][y].color == 1:
+                    # Проверяем, если на коордианатах x, y дракон
+                    return True
+        return False
     def is_under_check_b(self, board):
         # Проверяет, находится ли черный король под шахом. Аналогичен is_under_check_w
         king_position = []
@@ -611,8 +877,45 @@ class Board:
             if 0 <= x < 8 and 0 <= y < 8 and board.board[x][y] != '.':
                 if board.board[x][y].name == 'K' and board.board[x][y].color == 0:
                     return True
-        return False
+        samurai_moves = [(0, 2), (2, 0), (2, 2), (-2, 0), (2, -2), (-2, -2), (0, -2), (-2, 2)]
+        # samurai_moves - варианты расположения черного волшебника, в которых он может съесть белого короля
+        # Проверяем, находится ли король под ударом самурая:
+        for move in samurai_moves:
+            # Перебираем и проверяем, есть в клетках king_moves самураи
+            x = king_position[0] + move[0]
+            y = king_position[1] + move[1]
+            if 0 <= x < 8 and 0 <= y < 8 and board.board[x][y] != '.':
+                if board.board[x][y].name == 'S' and board.board[x][y].color == 1:
+                    # Проверяем, если на коордианатах x, y волшебник
+                    return True
+        wizard_moves = [(0, 1), (1, 0), (1, 1), (-1, 0), (1, -1), (-1, -1), (0, -1), (-1, 1)]
+        # wizard_moves - варианты расположения черного волшебника, в которых он может съесть белого короля
+        # Проверяем, находится ли король под ударом волшебника:
+        for move in wizard_moves:
+            # Перебираем и проверяем, есть в клетках king_moves волшебники
+            x = king_position[0] + move[0]
+            y = king_position[1] + move[1]
+            if 0 <= x < 8 and 0 <= y < 8 and board.board[x][y] != '.':
+                if board.board[x][y].name == 'W' and board.board[x][y].color == 1:
+                    # Проверяем, если на коордианатах x, y волшебник
+                    return True
+        if board.board[king_position[1]][king_position[0]] != '.':
+            if board.board[king_position[1]][king_position[0]].name == 'W' and board.board[king_position[1]][king_position[0]].color == 1:
+                # Проверяем, если на коордианатах king_position[1], king_position[0] волшебник
+                return True
 
+        dragon_moves = [(0, 2), (2, 0), (1, 1), (-2, 0), (1, -1), (-1, -1), (0, -2), (-1, 1)]
+        # dragon_moves - варианты расположения черного дракона, в которых он может съесть короля
+        # Проверяем, находится ли король под ударом дракона:
+        for move in dragon_moves:
+            # Перебираем и проверяем, есть в клетках king_moves драконы
+            x = king_position[0] + move[0]
+            y = king_position[1] + move[1]
+            if 0 <= x < 8 and 0 <= y < 8 and board.board[x][y] != '.':
+                if board.board[x][y].name == 'D' and board.board[x][y].color == 1:
+                    # Проверяем, если на коордианатах x, y дракон
+                    return True
+        return False
     def copy(self, board):
         # Создает гипотетическую доску для проверки возможности мата (тут проигрываются различные ходы, чтобы проверить, возможен ли хоть какой-то ход)
         self.board = [['.', '.', '.', '.', '.', '.', '.', '.'],
@@ -630,7 +933,6 @@ class Board:
                     # Переносим на поле фигуры с нынешнего состояния доски
         self.color = board.color
         # Запоминаем, чей ход сейчас
-
     def check_moves(self, board):
         # check_moves проверяет, возможен ли хоть один ход в текущий момент игры
         for i in range(8):
@@ -655,7 +957,6 @@ class Board:
                             return True
         # Если не существует ни одного возможного хода
         return False
-
     def get_all_moves(self, board, start):
         # get_all_moves возвращает список всех возможных координат ходов выбранной фигуры в all_moves
         all_moves = []
@@ -673,8 +974,202 @@ class Board:
                         self.board[start[0]][start[1]].first_move = True
                     all_moves.append([start, [i, j]])
         return all_moves
+    def extra_eating(self, board, start):
+        # extra_eating проверка на то, возможен ли двойной ход (съдение 2 фигур за раз)
+        # start - координаты фигуры, которую мы проверяем на возможность двойного хода
+        for i in range(8):
+            for j in range(8):
+                valid = board.board[start[0]][start[1]].is_valid_move(board, start, [i, j])
+                # valid - список, в котором valid[0] - возможность сходить, valid[1] - возможность съесть
+                if valid[0] and valid[1]:
+                    return True
+        return False
+    def move_piece_checkers(self, board, start, to):
+        if self.board[start[0]][start[1]] != '.':
+            # Есть ли в начальных координатах фигура
+            if self.color == self.board[start[0]][start[1]].color:
+                # Фигуру цвета текущего игрока двигают ли
+                if not(self.additional_move):
+                    # Проверка на то, не двойной ли ход сейчас
+                    valid = self.board[start[0]][start[1]].is_valid_move(board, start, to)
+                    # В valid список, в которой valid[0] хранит возможность хода, valid[1] было ли съедение 
+                    if valid[0]:
+                        # Если можно сходить
+                        if valid[1]:
+                        # Если съешки шашку в прошлом ходу
+                            a = start[0]
+                            b = start[1]
+                            while a != to[0]:
+                                # Проходимся по диагонали по координатам, которые прошла фишки и удаляем оттуда все съеденные шашки
+                                a -= (abs(start[0] - to[0]) // (start[0] - to[0]))
+                                b -= (abs(start[1] - to[1]) // (start[1] - to[1]))
+                                board.board[a][b] = '.'
+                            self.board[to[0]][to[1]] = self.board[start[0]][start[1]]
+                            # Переходим шашку на конечную координату
+                            self.board[start[0]][start[1]] = '.'
+                            # На старой координате удаляем шашку
+                            self.previous_piece = to
+                            # Запоминаем, какой фигурой мы ходили до этого (чтобы если что именно ей сделать дополнителбный ход)
+                            for i in range(8):
+                                # Проходимся по первому и последнему ряду поля
+                                if board.board[0][i] != '.' and board.board[0][i].name == 'C' and board.board[0][
+                                    i].color == 1:
+                                    # Ищем черные шашки на нижнем ряду 
+                                    board.board[0][i] = Checker_Queen(1)
+                                    # Checker_Queen делает пешку королевой 
+                                    self.additional_move = True
+                                    return True
+                                if board.board[7][i] != '.' and board.board[7][i].name == 'C' and board.board[7][
+                                    i].color == 0:
+                                    # Ищем белые шашки на верхнем ряду
+                                    self.additional_move = True
+                                    board.board[7][i] = Checker_Queen(0)
+                                    # Checker_Queen делает пешку королевой 
+                                    return True
+                            if board.extra_eating(board, to):
+                                # Проверка на возможность дополнительного хода (если можно еще кого-то съесть)
+                                self.additional_move = True
+                                self.eaten = True
+                                return True
+                        else:
+                            # Если нельзя съесть фигуру 
+                            self.board[to[0]][to[1]] = self.board[start[0]][start[1]]
+                            self.board[start[0]][start[1]] = '.'
+                            self.previous_piece = to
+                            for i in range(8):
+                                # Аналогичная вверхней проверка на появление королев 
+                                if board.board[0][i] != '.' and board.board[0][i].name == 'C' and board.board[0][i].color == 1:
+                                    board.board[0][i] = Checker_Queen(1)
+                                    self.additional_move = True
+                                    return True
+                                if board.board[7][i] != '.' and board.board[7][i].name == 'C' and board.board[7][i].color == 0:
+                                    self.additional_move = True
+                                    board.board[7][i] = Checker_Queen(0)
+                                    return True
+                        if self.color == 1:
+                            # Меняем текущего игрока
+                            self.color = 0
+                        else:
+                            self.color = 1
+                        return True
+                else:
+                    # Если это дополнительный ход
+                    if start == self.previous_piece:
+                        # В previous_piece координаты фигуры, которую мы двигали до этого 
+                        # Может быть 2 варианта, почему сейчас дополнительный ход (если можно кого-то съесть или если шашка стала королевой)
+                        if self.eaten:
+                            # Если можно кого-то съесть. Аналогично вверхнему кроме того, что нет возможности не есть шашку
+                            valid = self.board[start[0]][start[1]].is_valid_move(board, start, to)
+                            if valid[0] and valid[1]:
+                                a = start[0]
+                                b = start[1]
+                                while a != to[0]:
+                                    a -= (abs(start[0] - to[0]) // (start[0] - to[0]))
+                                    b -= (abs(start[1] - to[1]) // (start[1] - to[1]))
+                                    board.board[a][b] = '.'
+                                self.board[to[0]][to[1]] = self.board[start[0]][start[1]]
+                                self.board[start[0]][start[1]] = '.'
+                                self.previous_piece = to
+                                for i in range(8):
+                                    if board.board[0][i] != '.' and board.board[0][i].name == 'C' and board.board[0][
+                                        i].color == 1:
+                                        board.board[0][i] = Checker_Queen(1)
+                                        self.additional_move = True
+                                        return True
+                                    if board.board[7][i] != '.' and board.board[7][i].name == 'C' and board.board[7][
+                                        i].color == 0:
+                                        self.additional_move = True
+                                        board.board[7][i] = Checker_Queen(0)
+                                        return True
+                                if board.extra_eating(board, to):
+                                    self.additional_move = True
+                                    self.eaten = True
+                                    return True
+                                if self.color == 1:
+                                    self.color = 0
+                                else:
+                                    self.color = 1
+                                self.additional_move = False
+                                self.eaten = False
+                                return True
 
-
+                            if valid[0]:
+                                # Если пользователь не ест шашку
+                                print('Вам нужно съесть фигуру')
+                                return False
+                            return False 
+                        else:
+                            # Если шашкой стала королевой. Аналогичная вверхнему ходу шашки
+                            valid = self.board[start[0]][start[1]].is_valid_move(board, start, to)
+                            if valid[0]:
+                                if valid[1]:
+                                    # Если можно съесть шашку
+                                    a = start[0]
+                                    b = start[1]
+                                    while a != to[0]:
+                                        a -= (abs(start[0] - to[0]) // (start[0] - to[0]))
+                                        b -= (abs(start[1] - to[1]) // (start[1] - to[1]))
+                                        board.board[a][b] = '.'
+                                    self.board[to[0]][to[1]] = self.board[start[0]][start[1]]
+                                    self.board[start[0]][start[1]] = '.'
+                                    self.previous_piece = to
+                                    for i in range(8):
+                                        if board.board[0][i] != '.' and board.board[0][i].name == 'C' and \
+                                                board.board[0][
+                                                    i].color == 1:
+                                            board.board[0][i] = Checker_Queen(1)
+                                            self.additional_move = True
+                                            return True
+                                        if board.board[7][i] != '.' and board.board[7][i].name == 'C' and \
+                                                board.board[7][
+                                                    i].color == 0:
+                                            self.additional_move = True
+                                            board.board[7][i] = Checker_Queen(0)
+                                            return True
+                                    if board.extra_eating(board, to):
+                                        self.additional_move = True
+                                        self.eaten = True
+                                        return True
+                                else:
+                                    # Если нельзя съесть шашку
+                                    self.board[to[0]][to[1]] = self.board[start[0]][start[1]]
+                                    self.board[start[0]][start[1]] = '.'
+                                    self.previous_piece = to
+                                    for i in range(8):
+                                        if board.board[0][i] != '.' and board.board[0][i].name == 'C' and \
+                                                board.board[0][i].color == 1:
+                                            board.board[0][i] = Checker_Queen(1)
+                                            self.additional_move = True
+                                            return True
+                                        if board.board[7][i] != '.' and board.board[7][i].name == 'C' and \
+                                                board.board[7][i].color == 0:
+                                            self.additional_move = True
+                                            board.board[7][i] = Checker_Queen(0)
+                                            return True
+                                if self.color == 1:
+                                    self.color = 0
+                                else:
+                                    self.color = 1
+                                self.additional_move = False
+                                self.eaten = False
+                                return True
+                    else:
+                        # Если в дополнительный ход двигаем не ту фигуру, которую двигали в прошлый
+                        print("Вам нужно сходить той же фигурой, что и в предыдущий ход")
+                        return False
+        return False
+    def count_pieces(self, board):
+        # count_pieces считает количество белых и черных фигур на доске
+        w = 0
+        b = 0
+        for i in range(8):
+           for j in range(8):
+               if board.board[i][j] != '.':
+                   if board.board[i][j].color == 0:
+                       w += 1
+                   else:
+                       b += 1
+        return [w, b]
 def translate(s):
     # translate - переводит коордианты "в шахматах" (например, e1) в целочисленные координаты (e1 -> (0,4))
     # s - здесь координата в "шахматном" виде (например, e1)
@@ -687,7 +1182,7 @@ def translate(s):
             print(s[1] + " не между 1 - 8")
             return None
         if col < 'a' or col > 'h':
-            # Буквы сравниваются по номеру в таблице ascii 
+            # Буквы сравниваются по номеру в таблице ascii
             print(s[0] + " не между a - h")
             return None
         dict = {'a': 0, 'b': 1, 'c': 2, 'd': 3, 'e': 4, 'f': 5, 'g': 6, 'h': 7}
@@ -696,99 +1191,158 @@ def translate(s):
         # Если s неправильного "шахматного" формата
         print(s + " не в формате '[letter][number]'")
         return None
-
-
 def main():
     # main общается с пользователем
-    board = Board()
-    # Создаем пустую доску
     step = 1
     # step - счетчик ходов
-    while True:
-        # Цикл завершится, когда завершится игра
-        # Проверка на мат или пат для белого и черного игрока
-        if board.color == 0:
-            if board.is_under_check_w(board) and not (board.check_moves(board)):
-                print('Мат, выиграли черные')
+    print('Во что вы хотите сыграть шахматы или шашки?')
+    if input() == 'шахматы'.lower():
+        # Если играем в шахматы
+        board = Board(0)
+        # Создаем пустую доску. 0 - шахматы, 1 - шашки
+        while True:
+            # Цикл завершится, когда завершится игра
+            # Проверка на мат или пат для белого и черного игрока
+            if board.color == 0:
+                if board.is_under_check_w(board) and not (board.check_moves(board)):
+                    print('Мат, выиграли черные')
+                    break
+                elif board.is_under_check_w(board) == False and not (board.check_moves(board)):
+                    print('Пат, ничья')
+                    break
+            else:
+                if board.check_moves(board) == False and board.is_under_check_b(board):
+                    print('Мат, выиграли белые')
+                    break
+                elif board.check_moves(board) == False and not (board.is_under_check_b(board)):
+                    print('Пат, ничья')
+                    break
+            board.print_board()
+            # Выводим доску
+            print('Ход №' + str(step))
+            if board.color == 0:
+                print('Ход белых:')
+            else:
+                print('Ход чёрных:')
+            command = input().split()
+            # command - ввод от пользователя хода
+            if len(command) == 0:
+                print('Неправильный ввод, повторите попытку')
+                continue
+            if command[0] == 'exit':
                 break
-            elif board.is_under_check_w(board) == False and not (board.check_moves(board)):
-                print('Пат, ничья')
-                break
-        else:
-            if board.check_moves(board) == False and board.is_under_check_b(board):
-                print('Мат, выиграли белые')
-                break
-            elif board.check_moves(board) == False and not (board.is_under_check_b(board)):
-                print('Пат, ничья')
-                break
-        board.print_board()
-        # Выводим доску
-        print('Ход №' + str(step))
-        if board.color == 0:
-            print('Ход белых:')
-        else:
-            print('Ход чёрных:')
-        command = input().split()
-        # command - ввод от пользователя хода
-        if len(command) == 0:
-            print('Неправильный ввод, повторите попытку')
-            continue
-        if command[0] == 'exit':
-            break
-            # Возможность выхода из  игр
-        if command[0] == '0-0':
-            # '0-0' - короткая рокировка
-            if board.castling_s(board):
-                print('Ход успешен')
-                step += 1
-            continue
-        if command[0] == '0-0-0':
-            # '0-0-0' - длинная рокировка
-            if board.castling_l(board):
+                # Возможность выхода из  игр
+            if command[0] == '0-0':
+                # '0-0' - короткая рокировка
+                if board.castling_s(board):
+                    print('Ход успешен')
+                    step += 1
+                continue
+            if command[0] == '0-0-0':
+                # '0-0-0' - длинная рокировка
+                if board.castling_l(board):
+                    print('Ход успешен')
+                    step += 1
+                else:
+                    print('Вы не можете пойти сюда. Повторите попытку')
+                continue
+            if command[0] == 'откат':
+                if len(command) > 1:
+                    board.rollback(board)
+                    # Откат по умолчанию на 1 ход назад
+                else:
+                    board.rollback(board, int(command[1]))
+                    # Иначе на количество ходов, указанныз пользователем
+                continue
+            if len(command) != 2:
+                print('Неправильный ввод, повторите попытку')
+                continue
+            a = command[0].lower()
+            b = command[1].lower()
+            start = translate(a)
+            to = translate(b)
+            if not (start) or not (to):
+                # для некорректно введенной координаты
+                continue
+            if board.move_piece(board, start, to):
+                # move_piece - перемещает фигуру
                 print('Ход успешен')
                 step += 1
             else:
                 print('Вы не можете пойти сюда. Повторите попытку')
-            continue
-        if len(command) != 2:
-            print('Неправильный ввод, повторите попытку')
-            continue
-        a = command[0].lower()
-        b = command[1].lower()
-        start = translate(a)
-        to = translate(b)
-        if not (start) or not (to):
-            # для некорректно введенной координаты
-            continue
-        if board.move_piece(board, start, to):
-            # move_piece - перемещает фигуру
-            print('Ход успешен')
-            step += 1
-        else:
-            print('Вы не можете пойти сюда. Повторите попытку')
 
-        for i in range(8):
-            # Проверяем, есть ли пешка на противоположном крае
-            if board.board[0][i] != '.':
-                if board.board[0][i].name == 'P':
-                    print('Выберите, во что хотите превратить пешку:')
-                    print('Q: королева')
-                    print('B: слон')
-                    print('R: ладья')
-                    print('N: конь')
-                    piece = input()
-                    board.change_piece(piece, 0, i)
-                    # Меняем пешку на выбранную фигуру
-            # Аналогично для другого края доски
-            if board.board[7][i] != '.':
-                if board.board[7][i].name == 'P':
-                    print('Выберите, во что хотите превратить пешку:')
-                    print('Q: королева')
-                    print('B: слон')
-                    print('R: ладья')
-                    print('N: конь')
-                    piece = input()
-                    board.change_piece(piece, 7, i)
+            for i in range(8):
+                # Проверяем, есть ли пешка на противоположном крае
+                if board.board[0][i] != '.':
+                    if board.board[0][i].name == 'P':
+                        print('Выберите, во что хотите превратить пешку:')
+                        print('Q: королева')
+                        print('B: слон')
+                        print('R: ладья')
+                        print('N: конь')
+                        print('S: самурай')
+                        print('W: волшебник')
+                        print('D: дракон')
+                        piece = input()
+                        board.change_piece(piece, 0, i)
+                        # Меняем пешку на выбранную фигуру
+                # Аналогично для другого края доски
+                if board.board[7][i] != '.':
+                    if board.board[7][i].name == 'P':
+                        print('Выберите, во что хотите превратить пешку:')
+                        print('Q: королева')
+                        print('B: слон')
+                        print('R: ладья')
+                        print('N: конь')
+                        print('S: самурай')
+                        print('W: волшебник')
+                        print('D: дракон')
+                        piece = input()
+                        board.change_piece(piece, 7, i)
+    else:
+        # Если играем в шашки
+        board = Board(1)
+        # Создаем поле шашек
+        while True:
+            # Пока идет игра
+            count = board.count_pieces(board)
+            # count - список, в котоом сначала записано количество белых шашек, потом черных
+            if count[0] == 0:
+                print('Победили черные')
+                break
+            if count[1] == 0:
+                print('Победили белые')
+                break
+            board.print_board()
+            # Выводим доску
+            if board.color == 0:
+                print('Ход белых:')
+            else:
+                print('Ход чёрных:')
+            command = input().split()
+            # command - ввод от пользователя хода
+            if len(command) == 0:
+                print('Неправильный ввод, повторите попытку')
+                continue
+            if command[0] == 'exit':
+                break
+                # Возможность выхода из игры
+            if len(command) != 2:
+                print('Неправильный ввод, повторите попытку')
+                continue
+            a = command[0].lower()
+            b = command[1].lower()
+            start = translate(a)
+            # translate переводит координаты в формат шашек
+            to = translate(b)
+            if not (start) or not (to):
+                # для некорректно введенной координаты
+                continue
+            if board.move_piece_checkers(board, start, to):
+                # move_piece - перемещает фигуру
+                print('Ход успешен')
+            else:
+                print('Вы не можете пойти сюда. Повторите попытку')
 
 
 if __name__ == "__main__":
